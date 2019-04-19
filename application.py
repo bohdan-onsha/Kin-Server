@@ -1,25 +1,25 @@
-from flask import Flask
+from quart import Quart
 
-application = app = Flask(__name__)
+application = app = Quart(__name__)
 
 
 @app.route('/api/v1/user/register', methods=['POST'])
-def register():
+async def register():
     pass
 
 
 @app.route('/api/v1/user/auth', methods=['POST'])
-def auth():
+async def auth():
     pass
 
 
 @app.route('/api/v1/user/get-kins', methods=['POST'])
-def auth():
+async def auth():
     pass
 
 
 @app.route('/api/v1/user/history', methods=['POST'])
-def auth():
+async def auth():
     pass
 
 
