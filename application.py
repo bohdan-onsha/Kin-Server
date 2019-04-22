@@ -14,12 +14,17 @@ async def auth():
 
 
 @app.route('/api/v1/user/get-kins', methods=['POST'])
-async def auth():
+async def get_kins():
+    pass
+
+
+@app.route('/api/v1/server-wallet', methods=['POST'])
+async def get_cwpa():
     pass
 
 
 @app.route('/api/v1/user/history', methods=['POST'])
-async def auth():
+async def history():
     pass
 
 
