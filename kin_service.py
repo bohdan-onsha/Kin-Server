@@ -1,10 +1,23 @@
 import asyncio
 import kin
 
+import errors
 app_id = 'NM8e'
 
 
-def get_keypair(seed=None):
+def get_keypair(seed=None) -> kin.Keypair:
+    """
+        Gets the kin.Keypair instance with the given seed.
+        Creates new one if seed is None
+
+
+        :param seed: Secret seed of kin wallet
+
+        :return: :class kin.Keypair
+
+        :raises: :class: errors.StellarSecretInvalidError if the given seed is invalid
+
+    """
     if seed is None:
         return kin.Keypair()
     try:
@@ -13,32 +26,68 @@ def get_keypair(seed=None):
         raise
 
 
-async def create_account(client, keypair=None):
-    if keypair is None:
+async def create_account(client: kin.KinClient, keypair=None) -> kin.KinAccount:
+    """
+        Create a new instance of the kin.KinClient to query the Kin blockchain
+        with the given keypair or with new one
+
+
+        :param client: :class kin.KinClient performs operations to query to the Kin Blockchain
+        :param keypair: :class kin.Keypair keypair of kin wallet
+
+        :return: :class kin.KinAccount allows you to perform authenticated actions on the Kim Blockchain
+
+    """
+    if keypair is None or keypair is not isinstance(keypair, kin.Keypair):
         keypair = get_keypair()
+
     if not await client.does_account_exists(keypair.public_address):
         await client.friendbot(keypair.public_address)
+
     return client.kin_account(keypair.secret_seed, app_id=app_id)
 
 
-async def send_kin(client, account, destination, count, memo_text=''):
-    tx_hash = await account.send_kin(destination, count, fee=100, memo_text=memo_text)
+async def send_kin(client: kin.KinClient, account: kin.KinAccount, destination: str, amount: int, memo_text='') -> dict:
+    """
+        Send KIN to the account identified by the provided address.
+
+        :param client: :class kin.KinClient performs operations to query to the Kin Blockchain
+        :param account: :class kin.KinAccount
+        :param destination: kin wallet public address of recipient
+        :param amount: :class amount of kin
+        :param memo_text: additional transaction text
+
+        :return: dictionary with the transaction details
+
+    """
+    tx_hash = await account.send_kin(destination, amount, fee=100, memo_text=memo_text)
     transaction = await client.get_transaction_data(tx_hash=tx_hash)
     transaction.operation = vars(transaction.operation)
     return vars(transaction)
 
 
-async def get_wallet_balance(public_address):
-    async with get_client() as client:
-        return await client.get_account_balance(public_address)
+async def get_wallet_balance(public_address: str) -> int:
+    """
+        Returns current balance of kin wallet with the given address
 
+        :param public_address: public address of kin wallet
+
+        :return: amount of kin available on account
+
+    """
+    async with get_client() as client:
+        try:
+            return await client.get_account_balance(public_address)
+        except kin.errors.AccountNotFoundError:
+            raise errors.ItemNotFoundError
+        except kin.errors.StellarAddressInvalidError:
+            raise
 
 async def main():
-    print(await get_wallet_balance('GDMDSV7UMMQ46TYV2MKA6MQDRXKHC2HBSKNO6IFU7LPZIJ6LVNJMJKNY'))
+    pass
 
 
 def get_client():
     return kin.KinClient(kin.TEST_ENVIRONMENT)
 
-
-#asyncio.run(main())
+# asyncio.run(main())

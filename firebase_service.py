@@ -1,8 +1,10 @@
 import asyncio
 import re
 
+import kin
 import pyrebase
 import validate_email as validator
+
 
 import configuration
 import kin_service
@@ -78,7 +80,19 @@ def authenticate(uid: str) -> dict:
     return data
 
 
-async def get_kins(uid, count, description):
+async def get_kins(uid: str, amount: int, description: str) -> None:
+    """
+            Send kin from current server wallet to wallet linked with the given uid
+            Also push the data about transaction and wallet balances to the db
+
+            :param uid: uid of the account
+            :param amount: amount of kin to be sent
+            :param description: additional transaction text
+
+
+            :raises: :class: errors.ItemNotFoundError if account with the given uid does not exist
+
+    """
     user_query = db.child("users").child().order_by_child("uid").equal_to(uid).get()
     server_query = db.child("server_wallet").child().get()
     try:
@@ -92,7 +106,7 @@ async def get_kins(uid, count, description):
 
     async with kin_service.get_client() as client:
         account = await kin_service.create_account(client, server_wallet_keypair)
-        transaction = await kin_service.send_kin(client, account, recipient_address, count, description)
+        transaction = await kin_service.send_kin(client, account, recipient_address, amount, description)
 
         tx_data = {
             'id': transaction['id'],
@@ -106,13 +120,14 @@ async def get_kins(uid, count, description):
     await update_wallet_balance(uid)
 
 
-'''
+async def create_server_wallet() -> None:
+    """
+            Create kin wallet that will be used like main server wallet
+            Replace old server wallet with itself
 
-'''
 
+    """
 
-async def create_server_wallet():
-    db.child("server_wallet").remove()
     async with kin_service.get_client() as client:
         account = await kin_service.create_account(client, kin_service.get_keypair())
 
@@ -121,10 +136,21 @@ async def create_server_wallet():
             'seed': account.keypair.secret_seed,
             'balance': await account.get_balance(),
         }
+    db.child('server_wallet').remove()
     db.child('server_wallet').push(data)
 
 
-def get_server_wallet_address(uid):
+def get_server_wallet_address(uid: str) -> str:
+    """
+            Returns current server wallet public address with
+            Available only for registered users
+
+            :param uid: uid of the user
+
+            :return: public address of current server wallet
+
+            :raises: errors.ItemNotFoundError if user with given uid does not exist
+    """
     try:
         authenticate(uid)
         wallet_data = get_server_wallet()
@@ -133,7 +159,15 @@ def get_server_wallet_address(uid):
         raise
 
 
-def get_server_wallet():
+def get_server_wallet() -> dict:
+    """
+            Returns full data about current server wallet
+
+
+            :return: dictionary that store current balance, public address and secret seed of current server wallet
+
+            :raises: errors.ItemNotFoundError if user with given uid does not exist
+    """
     query = db.child("server_wallet").child().get()
 
     try:
@@ -151,7 +185,11 @@ def history(uid):
     '''
 
 
-async def update_server_wallet_balance():
+async def update_server_wallet_balance() -> None:
+    """
+            Updates balance of server wallet at db
+
+    """
     wallet_data = get_server_wallet()
     public_address = wallet_data['public_address']
     wallet_data['balance'] = await kin_service.get_wallet_balance(public_address)
@@ -159,10 +197,20 @@ async def update_server_wallet_balance():
     db.child('server_wallet').update(wallet_data)
 
 
-async def update_wallet_balance(uid):
-    user_query = db.child("users").child().order_by_child("uid").equal_to(uid).get()
-    user_data = user_query.each()[0].val()
-    current_balance = await kin_service.get_wallet_balance(user_data['public_address'])
+async def update_wallet_balance(uid: str) -> None:
+    """
+            Updates balance of kin wallet linked to the given uid
+
+            :raises: errors.ItemNotFoundError if user with given uid does not exist
+    """
+    try:
+        user_query = db.child("users").child().order_by_child("uid").equal_to(uid).get()
+        user_data = user_query.each()[0].val()
+        current_balance = await kin_service.get_wallet_balance(user_data['public_address']) #raises some shit
+    except (IndexError, errors.ItemNotFoundError):
+        raise errors.ItemNotFoundError
+    except kin.errors.StellarAddressInvalidError:
+        raise
 
     user_data['balance'] = current_balance
     db.child("users").child().order_by_child("uid").equal_to(uid).update(user_data)
@@ -215,8 +263,8 @@ async def main():
     # print(get_server_wallet_address('1VUeQgrTBbSltSEtm89gP8DMxmC3'))
     await get_kins('Cul7y6e6mWah1EWfkJAEPC1rOho1', 1000, 'othertest')
     # await create_server_wallet()
-    #await update_server_wallet_balance()
-    #await update_wallet_balance('Cul7y6e6mWah1EWfkJAEPC1rOho1')
+    # await update_server_wallet_balance()
+    # await update_wallet_balance('Cul7y6e6mWah1EWfkJAEPC1rOho1')
 
 
 asyncio.run(main())
