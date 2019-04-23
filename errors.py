@@ -15,8 +15,10 @@ class InvalidPasswordError(Exception):
         super().__init__(message)
 
 
-class AccountNotFoundError(Exception):
+class ItemNotFoundError(Exception):
     def __init__(self):
-        message = "Account with that uid does not exists"
+        message = "There is no such items in database"
 
         super().__init__(message)
+
+
