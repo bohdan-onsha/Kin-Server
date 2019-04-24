@@ -38,8 +38,10 @@ async def create_account(client: kin.KinClient, keypair=None) -> kin.KinAccount:
         :return: :class kin.KinAccount allows you to perform authenticated actions on the Kim Blockchain
 
     """
-    if keypair is None or keypair is not isinstance(keypair, kin.Keypair):
+
+    if keypair is None or not isinstance(keypair, kin.Keypair):
         keypair = get_keypair()
+
 
     if not await client.does_account_exists(keypair.public_address):
         await client.friendbot(keypair.public_address)

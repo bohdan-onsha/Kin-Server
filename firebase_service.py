@@ -100,12 +100,16 @@ async def get_kins(uid: str, amount: int, description: str) -> None:
         recipient_address = user_data['public_address']
 
         server_wallet_data = server_query.each()[0].val()
+        print(server_wallet_data)
         server_wallet_keypair = kin_service.get_keypair(seed=server_wallet_data['seed'])
+        print(server_wallet_keypair)
     except IndexError:
         raise errors.ItemNotFoundError()
 
     async with kin_service.get_client() as client:
         account = await kin_service.create_account(client, server_wallet_keypair)
+        print(account.keypair.public_address)
+        print(account.keypair.secret_seed)
         transaction = await kin_service.send_kin(client, account, recipient_address, amount, description)
 
         tx_data = {
@@ -193,8 +197,10 @@ async def update_server_wallet_balance() -> None:
     wallet_data = get_server_wallet()
     public_address = wallet_data['public_address']
     wallet_data['balance'] = await kin_service.get_wallet_balance(public_address)
+    data = db.child('server_wallet').get()
+    key = data.each()[0].key()
+    db.child('server_wallet').child(key).update(wallet_data)
 
-    db.child('server_wallet').update(wallet_data)
 
 
 async def update_wallet_balance(uid: str) -> None:
@@ -213,7 +219,15 @@ async def update_wallet_balance(uid: str) -> None:
         raise
 
     user_data['balance'] = current_balance
-    db.child("users").child().order_by_child("uid").equal_to(uid).update(user_data)
+
+    data = db.child('users').child().order_by_child('uid').equal_to(uid).limit_to_first(1).get()
+    key = data.each()[0].key()
+    db.child('users').child(key).update(user_data)
+
+
+
+
+
 
 
 def validate_email(email: str) -> bool:
@@ -255,16 +269,25 @@ def validate_password(password: str) -> bool:
 
 
 async def main():
-    # await register('testemail@google.com', '1A345asfsa')
-    # await register('onsha.bogdan@gmail.com', 'ASsgnale32r')
-    # await register('nure.forum@gmail.com', '3jrnsod8an')
-    # print(authenticate('nHZ1IXDUaXemjgLpIbgeM3BbtNk2'))
-    # await create_server_wallet()
-    # print(get_server_wallet_address('1VUeQgrTBbSltSEtm89gP8DMxmC3'))
-    await get_kins('Cul7y6e6mWah1EWfkJAEPC1rOho1', 1000, 'othertest')
-    # await create_server_wallet()
-    # await update_server_wallet_balance()
-    # await update_wallet_balance('Cul7y6e6mWah1EWfkJAEPC1rOho1')
+    #print('registering 3 accounts...')
+    #await register('testemail@google.com', '1A345asfsa')
+    #await register('onsha.bogdan@gmail.com', 'ASsgnale32r')
+    #await register('nure.forum@gmail.com', '3jrnsod8an')
+    #print('registere complete')
 
+    # print(authenticate('nHZ1IXDUaXemjgLpIbgeM3BbtNk2'))
+    #print('creating server wallet..')
+    #await create_server_wallet()
+
+
+
+    #print(get_server_wallet_address('dDMCR2YlqTSA1bhFbGojskWlYcI2'))
+    #await update_wallet_balance('MZC1pGhu4vbf0t4P8hyR4YtUrUD3')
+
+    #await get_kins('Hzm8fa7a7haBL1oYdHql9BwJlfJ3', 750, 'hi5')
+    # await create_server_wallet()
+    #await update_server_wallet_balance()
+    #await update_wallet_balance('WL9ee6tLHSQqoJm2gmIxF2MiWxD2')
+    pass
 
 asyncio.run(main())
