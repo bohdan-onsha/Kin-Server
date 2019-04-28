@@ -2,6 +2,7 @@ import asyncio
 import kin
 
 import errors
+
 app_id = 'NM8e'
 
 
@@ -26,46 +27,50 @@ def get_keypair(seed=None) -> kin.Keypair:
         raise
 
 
-async def create_account(client: kin.KinClient, keypair=None) -> kin.KinAccount:
+async def create_account(client: kin.KinClient, account: kin.KinAccount, keypair=None) -> kin.KinAccount:
     """
         Create a new instance of the kin.KinClient to query the Kin blockchain
         with the given keypair or with new one
 
 
         :param client: :class kin.KinClient performs operations to query to the Kin Blockchain
-        :param keypair: :class kin.Keypair keypair of kin wallet
+        :param account: :class kin.KinAccount account
+        :param keypair: :class kin.Keypair keypair of the kin wallet
 
         :return: :class kin.KinAccount allows you to perform authenticated actions on the Kim Blockchain
 
     """
-
     if keypair is None or not isinstance(keypair, kin.Keypair):
         keypair = get_keypair()
-
-
     if not await client.does_account_exists(keypair.public_address):
-        await client.friendbot(keypair.public_address)
-
+        await account.create_account(keypair.public_address, 0, 100)
     return client.kin_account(keypair.secret_seed, app_id=app_id)
 
 
-async def send_kin(client: kin.KinClient, account: kin.KinAccount, destination: str, amount: int, memo_text='') -> dict:
+async def send_kin(client: kin.KinClient, account: kin.KinAccount, destination: str, amount: int,
+                   memo_text='') -> dict:
     """
         Send KIN to the account identified by the provided address.
 
         :param client: :class kin.KinClient performs operations to query to the Kin Blockchain
-        :param account: :class kin.KinAccount
+        :param account: :class kin.KinAccount account-sender
         :param destination: kin wallet public address of recipient
         :param amount: :class amount of kin
         :param memo_text: additional transaction text
 
         :return: dictionary with the transaction details
 
+        :raises: :class kin.KinErrors.LowBalanceEroor if there is not enough KIN to send and pay transaction fee
+        :raises: :class kin.KinErrors.NotValidParamError if the memo is longer than MEMO_CAP characters
     """
-    tx_hash = await account.send_kin(destination, amount, fee=100, memo_text=memo_text)
-    transaction = await client.get_transaction_data(tx_hash=tx_hash)
-    transaction.operation = vars(transaction.operation)
-    return vars(transaction)
+    minimum_fee = await client.get_minimum_fee()
+    try:
+        tx_hash = await account.send_kin(destination, amount, fee=minimum_fee, memo_text=memo_text)
+        transaction = await client.get_transaction_data(tx_hash=tx_hash)
+        transaction.operation = vars(transaction.operation)
+        return vars(transaction)
+    except (kin.KinErrors.LowBalanceError, kin.KinErrors.NotValidParamError):
+        raise
 
 
 async def get_wallet_balance(public_address: str) -> int:
@@ -85,8 +90,16 @@ async def get_wallet_balance(public_address: str) -> int:
         except kin.errors.StellarAddressInvalidError:
             raise
 
+
 async def main():
-    pass
+    async with get_client() as client:
+        keypair = get_keypair('SBSHKSJUFB2DCUJW3DF2WF2TODEJQGCHFHRQ2ULJFSRQXMDLEVE5TFCM')
+        print(keypair)
+        print(await client.does_account_exists(keypair.public_address))
+
+        from firebase_service import get_server_wallet
+        wallet = get_server_wallet()
+        print(wallet)
 
 
 def get_client():

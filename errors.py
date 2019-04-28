@@ -7,10 +7,7 @@ class InvalidEmailError(Exception):
 
 class InvalidPasswordError(Exception):
     def __init__(self):
-        message = "Password is invalid\n" \
-                  "Make sure these requirements are satisfied:\n" \
-                  " - At least 8 characters\n" \
-                  " - Consists of letters (upper/lowercase), numbers and/or any of the special characters: @#$%^&+=\n"
+        message = "Password is too short (less than 8 characters)"
 
         super().__init__(message)
 
@@ -22,3 +19,8 @@ class ItemNotFoundError(Exception):
         super().__init__(message)
 
 
+class InsufficientFundsError(Exception):
+    def __init__(self):
+        message = "Insufficient funds on server wallet to complete the transaction"
+
+        super().__init__(message)
