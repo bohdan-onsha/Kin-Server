@@ -24,3 +24,10 @@ class InsufficientFundsError(Exception):
         message = "Insufficient funds on server wallet to complete the transaction"
 
         super().__init__(message)
+
+
+class ExcessLimitError(Exception):
+    def __init__(self):
+        message = "Wallet operations limit exceeded"
+
+        super().__init__(message)

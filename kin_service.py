@@ -34,7 +34,7 @@ async def create_account(client: kin.KinClient, account: kin.KinAccount, keypair
 
 
         :param client: :class kin.KinClient performs operations to query to the Kin Blockchain
-        :param account: :class kin.KinAccount account
+        :param account: :class kin.KinAccount account for the initial transaction
         :param keypair: :class kin.Keypair keypair of the kin wallet
 
         :return: :class kin.KinAccount allows you to perform authenticated actions on the Kim Blockchain
@@ -45,6 +45,11 @@ async def create_account(client: kin.KinClient, account: kin.KinAccount, keypair
     if not await client.does_account_exists(keypair.public_address):
         await account.create_account(keypair.public_address, 0, 100)
     return client.kin_account(keypair.secret_seed, app_id=app_id)
+
+
+def whitelist_tx(client: kin.KinClient, account: kin.KinAccount, tx_hash: str):
+    whitelisted_tx = account.whitelist_transaction(tx_hash)
+    return kin.decode_transaction(whitelisted_tx)
 
 
 async def send_kin(client: kin.KinClient, account: kin.KinAccount, destination: str, amount: int,
@@ -91,18 +96,11 @@ async def get_wallet_balance(public_address: str) -> int:
             raise
 
 
-async def main():
-    async with get_client() as client:
-        keypair = get_keypair('SBSHKSJUFB2DCUJW3DF2WF2TODEJQGCHFHRQ2ULJFSRQXMDLEVE5TFCM')
-        print(keypair)
-        print(await client.does_account_exists(keypair.public_address))
-
-        from firebase_service import get_server_wallet
-        wallet = get_server_wallet()
-        print(wallet)
-
-
 def get_client():
     return kin.KinClient(kin.TEST_ENVIRONMENT)
+
+
+async def main():
+    pass
 
 # asyncio.run(main())

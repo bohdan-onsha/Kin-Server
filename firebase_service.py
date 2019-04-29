@@ -11,12 +11,12 @@ import kin_service
 import errors
 
 app_id = 'NM8e'
-"""
-user - firebase uid,  email, password hash, public wallet address,  recovery string
 
-transactions - from uid, to uid, count, description, date etc.
-
-"""
+limits = {
+    'day': 1000,
+    'week': 5000,
+    'month': 15000
+}
 
 firebase = pyrebase.initialize_app(configuration.config)
 auth = firebase.auth()
@@ -53,13 +53,25 @@ async def register(email: str, password: str) -> dict:
             'balance': await account.get_balance(),
             'email': user['email'],
             'uid': user['localId'],
+            "limits": limits
         }
 
     db.child('users').push(data)
     return data
 
 
-def authenticate(email, password):
+def authenticate(email: str, password: str) -> str:
+    """
+            Authenticates firebase account
+
+            :param email: account email address
+            :param password: account password
+
+            :return: Auth token string
+
+            :raises: :class: errors.HTTPError if email or/and password is invalid
+
+    """
     try:
         user = auth.sign_in_with_email_and_password(email, password)
         return user['idToken']
@@ -104,6 +116,7 @@ async def get_kins(uid: str, token: str, amount: int, description: str) -> dict:
 
             :raises: :class: errors.ItemNotFoundError if account with the given uid does not exist
             :raises: :class: errors.LowBalanceError if there is no enough money on server wallet
+            :raises: :class: errors.ExcessLimitError if at least one of account limits exceeded
 
             :return dictionary with transaction data
     """
@@ -114,14 +127,17 @@ async def get_kins(uid: str, token: str, amount: int, description: str) -> dict:
         recipient_address = user_data['public_address']
         server_wallet_data = server_query.each()[0].val()
         server_wallet_keypair = kin_service.get_keypair(seed=server_wallet_data['seed'])
+
+        check_user_limits(uid, amount)
     except IndexError:
         raise errors.ItemNotFoundError()
-
+    except errors.ExcessLimitError:
+        raise
     try:
         async with kin_service.get_client() as client:
             account = client.kin_account(server_wallet_keypair.secret_seed, app_id=app_id)
             transaction = await kin_service.send_kin(client, account, recipient_address, amount, description)
-
+            user_limits = get_user_limits(uid, amount)
             tx_data = {
                 'id': transaction['id'],
                 'uid': user_data['uid'],
@@ -133,10 +149,12 @@ async def get_kins(uid: str, token: str, amount: int, description: str) -> dict:
             db.child('transactions').push(tx_data)
         await update_server_wallet_balance()
         await update_wallet_balance(uid)
+        update_user_limits(uid, user_limits)
 
         return tx_data
     except (kin.KinErrors.LowBalanceError, kin.KinErrors.NotValidParamError):
         raise
+
 
 '''
 async def create_server_wallet() -> None:
@@ -163,7 +181,7 @@ async def create_server_wallet() -> None:
 
 def get_server_wallet_address(uid: str, token: str) -> str:
     """
-            Returns current server wallet public address with
+            Returns current server wallet public address
             Available only for registered users
 
             :param uid: uid of the user
@@ -199,17 +217,109 @@ def get_server_wallet() -> dict:
         raise errors.ItemNotFoundError()
 
 
-async def get_server_account(client):
+async def get_server_account(client: kin.KinClient) -> kin.KinAccount:
+    """
+            Returns associated with server wallet kin.KinAccount instance
+
+            :param client :class kin.KinClient active client
+
+            :return: :class kin.KinAccount
+    """
     wallet_data = get_server_wallet()
     account = client.kin_account(wallet_data['seed'])
     return account
 
 
 def history(uid: str, token: str) -> list:
+    """
+            Returns associated with server wallet kin.KinAccount instance
+
+            :param uid: uid of the user
+            :param token: active firebase token
+
+            :return: dictionary with all users transactions
+    """
     data = db.child('transactions').child().order_by_child('uid').equal_to(uid).get(token=token)
     if len(data.each()) == 0:
         raise errors.ItemNotFoundError
     return [i.val() for i in data.each()]
+
+
+def get_user_limits(uid: str, amount=None) -> dict:
+    """
+            Returns user transaction limits data
+            If amount is transmitted, return user limits after transaction
+
+            :param uid: uid of the user
+            :param amount: (Optional) amount of kin to be sent or received
+
+            :return: dict with user limits
+
+    """
+    raw_data = db.child('users').child().order_by_child('uid').equal_to(uid).limit_to_first(1).get()
+    data = raw_data.each()[0].val()
+    user_limits = data['limits']
+    if amount is not None:
+        for key, value in user_limits.items():
+            user_limits[key] = int(user_limits[key]) - amount
+    return user_limits
+
+
+def update_user_limits(uid: str, limits: dict) -> None:
+    """
+            Replace current user limits with the given limits dict
+
+            :param uid: uid of the user
+            :param limits: dicionary with users limits after the transaction
+
+            :return: dict with user limits
+
+    """
+    user_data_raw = db.child('users').child().order_by_child('uid').equal_to(uid).limit_to_first(1).get()
+    user_data = user_data_raw.each()[0].val()
+    key = user_data_raw.each()[0].key()
+
+    user_data['limits'] = limits
+    db.child('users').child(key).update(user_data)
+
+
+def check_user_limits(uid, amount):
+    """
+            Checks if user limits satisfy ongoing transaction
+
+            :param uid: user uid
+            :param amount: amount of kin to be sent/received during ongoing transaction
+
+            :return: True if amount less than all of user limits
+
+            :raises: :class: errors.ExcessLimitError otherwise
+
+    """
+    user_limits = get_user_limits(uid)
+
+    if all(int(limit) >= amount for limit in user_limits.values()):
+        return True
+    else:
+        raise errors.ExcessLimitError
+
+
+def reset_limits(period: str) -> None:
+    """
+            Reset limits for the given period for all users
+
+            :param period: One of the following ['day', 'week', 'month']
+
+
+     """
+    raw_data = db.child('users').child().get().each()
+
+    if period not in limits.keys():
+        period = 'day'
+    for user in raw_data:
+        user_data = user.val()
+        key = user.key()
+        user_data['limits'][period] = limits[period]
+        db.child('users').child(key).update(user.val())
 
 
 async def update_server_wallet_balance() -> None:
@@ -293,8 +403,14 @@ async def main():
     # await register('trophimov.alexey@gmail.com', 'jasGJEFKJ22')
     # await register('memepunct@gmail.com', 'asdasr322cs')
 
-    #token = authenticate('memepunct@gmail.com', 'asdasr322cs')
-    #print(token)
+    # token = authenticate('onsha.bogdan@gmail.com', 'ASsgnale32r')
+    # await get_kins('EbMFuaO3GqXn1JpbBULQlqyBvV92', token, 300, 'limits-2')
+    # user_limits = get_user_limits('5NVGUelas6T0u3mMTIItZmTDjTL2', 100)
+    # update_user_limits('5NVGUelas6T0u3mMTIItZmTDjTL2', user_limits)
+    # check_user_limits('5NVGUelas6T0u3mMTIItZmTDjTL2', 1001)
     # await get_kins('9FHS4w9zFJNuSuhy4XfSREvcASv2', token, 300, 'again')
+    #reset_limits('week')
+
     pass
-#asyncio.run(main())
+
+# asyncio.run(main())
