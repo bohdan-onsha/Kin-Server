@@ -47,11 +47,6 @@ async def create_account(client: kin.KinClient, account: kin.KinAccount, keypair
     return client.kin_account(keypair.secret_seed, app_id=app_id)
 
 
-def whitelist_tx(client: kin.KinClient, account: kin.KinAccount, tx_hash: str):
-    whitelisted_tx = account.whitelist_transaction(tx_hash)
-    return kin.decode_transaction(whitelisted_tx)
-
-
 async def send_kin(client: kin.KinClient, account: kin.KinAccount, destination: str, amount: int,
                    memo_text='') -> dict:
     """
@@ -78,6 +73,13 @@ async def send_kin(client: kin.KinClient, account: kin.KinAccount, destination: 
         raise
 
 
+async def whitelist_tx(client, tx_hash):
+    keypair = get_keypair(seed='SARVQW7AA7CF7TWXRY4ERJR5BYQOT6LN4CTL66YNXFYL2JDSYJUMSN4F')
+    account = client.kin_account(keypair.secret_seed, app_id=app_id)
+    transaction = await client.get_transaction_data(tx_hash=tx_hash, simple=False)
+    whitelisted = account.whitelist_transaction(transaction)
+
+
 async def get_wallet_balance(public_address: str) -> int:
     """
         Returns current balance of kin wallet with the given address
@@ -97,10 +99,12 @@ async def get_wallet_balance(public_address: str) -> int:
 
 
 def get_client():
-    return kin.KinClient(kin.TEST_ENVIRONMENT)
+    return kin.KinClient(kin.PROD_ENVIRONMENT)
 
 
 async def main():
-    pass
+    async with get_client() as client:
+        pass
 
-# asyncio.run(main())
+# for tests
+#asyncio.run(main())

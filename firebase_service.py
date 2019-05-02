@@ -12,24 +12,19 @@ import errors
 
 app_id = 'NM8e'
 
-limits = {
-    'day': 1000,
-    'week': 5000,
-    'month': 15000
-}
-
 firebase = pyrebase.initialize_app(configuration.config)
 auth = firebase.auth()
 db = firebase.database()
 
 
-async def register(email: str, password: str) -> dict:
+async def register(email: str, password: str, is_admin=False) -> dict:
     """
             Creates new account, associates new kin account with it
             and save users data to db
 
             :param email: Email address that will be linked to account
             :param password: Password of the account
+            :param is_admin: access to admin panel
 
             :return: Dictionary with account data (public address, seed, balance, email, uid)
 
@@ -53,14 +48,15 @@ async def register(email: str, password: str) -> dict:
             'balance': await account.get_balance(),
             'email': user['email'],
             'uid': user['localId'],
-            "limits": limits
+            'limits': get_limits(),
+            'is_admin': is_admin
         }
 
     db.child('users').push(data)
     return data
 
 
-def authenticate(email: str, password: str) -> str:
+def authenticate(email: str, password: str) -> list:
     """
             Authenticates firebase account
 
@@ -74,7 +70,11 @@ def authenticate(email: str, password: str) -> str:
     """
     try:
         user = auth.sign_in_with_email_and_password(email, password)
-        return user['idToken']
+        uid = user['localId']
+        data = db.child('users').child().order_by_child('uid').equal_to(uid).get().each()[0].val()
+        if data['is_admin']:
+            return [user['idToken'], True]
+        return [user['idToken']]
     except requests.exceptions.HTTPError:
         raise
 
@@ -156,7 +156,7 @@ async def get_kins(uid: str, token: str, amount: int, description: str) -> dict:
         raise
 
 
-'''
+
 async def create_server_wallet() -> None:
     """
             Create kin wallet that will be used like main server wallet
@@ -166,17 +166,19 @@ async def create_server_wallet() -> None:
     """
 
     async with kin_service.get_client() as client:
-        account = await kin_service.create_account(client, kin_service.get_keypair())
+        keypair = kin_service.get_keypair(seed='SARVQW7AA7CF7TWXRY4ERJR5BYQOT6LN4CTL66YNXFYL2JDSYJUMSN4F')
+        account = client.kin_account(keypair.secret_seed, app_id=app_id)
 
         data = {
             'public_address': account.keypair.public_address,
             'seed': account.keypair.secret_seed,
             'balance': await account.get_balance(),
         }
+
     db.child('server_wallet').remove()
     db.child('server_wallet').push(data)
 
-'''
+
 
 
 def get_server_wallet_address(uid: str, token: str) -> str:
@@ -312,7 +314,7 @@ def reset_limits(period: str) -> None:
 
      """
     raw_data = db.child('users').child().get().each()
-
+    limits = get_limits()
     if period not in limits.keys():
         period = 'day'
     for user in raw_data:
@@ -320,6 +322,21 @@ def reset_limits(period: str) -> None:
         key = user.key()
         user_data['limits'][period] = limits[period]
         db.child('users').child(key).update(user.val())
+
+
+def set_limits(limits):
+    periods = ['day', 'week', 'month']
+    if all(period in limits for period in periods):
+        db.child('limits').remove()
+        db.child('limits').push(limits)
+
+        for period in periods:
+            reset_limits(period)
+
+
+def get_limits():
+    data = db.child('limits').get()
+    return data.each()[0].val()
 
 
 async def update_server_wallet_balance() -> None:
@@ -355,6 +372,24 @@ async def update_wallet_balance(uid: str) -> None:
     data = db.child('users').child().order_by_child('uid').equal_to(uid).limit_to_first(1).get()
     key = data.each()[0].key()
     db.child('users').child(key).update(user_data)
+
+
+def get_admin_data():
+    users_raw = db.child('users').get()
+    transactions_raw = db.child('transactions').get()
+    server_raw = db.child('server_wallet').get()
+
+    server_data = server_raw.each()[0].val()
+    user_data = [user.val() for user in users_raw]
+    txs_data = [tx.val() for tx in transactions_raw]
+
+    data = {
+        'users': user_data,
+        'transactions': txs_data,
+        'server': server_data,
+        'limits':get_limits()
+    }
+    return data
 
 
 def validate_email(email: str) -> bool:
@@ -396,21 +431,8 @@ def validate_password(password: str) -> bool:
 
 
 async def main():
-    # print('registering 3 accounts...')
-    # await register('testemail@google.com', '1A345asfsa')
-    # await register('onsha.bogdan@gmail.com', 'ASsgnale32r')
-    # await register('nure.forum@gmail.com', '3jrnsod8an')
-    # await register('trophimov.alexey@gmail.com', 'jasGJEFKJ22')
-    # await register('memepunct@gmail.com', 'asdasr322cs')
-
-    # token = authenticate('onsha.bogdan@gmail.com', 'ASsgnale32r')
-    # await get_kins('EbMFuaO3GqXn1JpbBULQlqyBvV92', token, 300, 'limits-2')
-    # user_limits = get_user_limits('5NVGUelas6T0u3mMTIItZmTDjTL2', 100)
-    # update_user_limits('5NVGUelas6T0u3mMTIItZmTDjTL2', user_limits)
-    # check_user_limits('5NVGUelas6T0u3mMTIItZmTDjTL2', 1001)
-    # await get_kins('9FHS4w9zFJNuSuhy4XfSREvcASv2', token, 300, 'again')
-    #reset_limits('week')
-
     pass
 
-# asyncio.run(main())
+
+# for tests
+#asyncio.run(main())

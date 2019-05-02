@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="/static/admin-style.css" type="text/css">
+    <script type="text/javascript" src="{{ url_for('static', filename='sorttable.js') }}"></script>
+</head>
+<body>
+<h1>Admin Panel</h1>
+
+
+<div id="accordion">
+    <div class="card">
+        <div class="card-header" id="headingOne">
+            <h5 class="mb-0">
+                <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseUsers"
+                        aria-expanded="false"
+                        aria-controls="collapseUsers">
+                    Users
+                </button>
+            </h5>
+        </div>
+
+        <div id="collapseUsers" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
+            <div class="card-body">
+                <div class="container container-fluid">
+                    <table class="table table-bordered text-center sortable">
+                        <thead>
+                        <tr>
+                            <th style="width:20%;">Email</th>
+                            <th style="width:20%;">Uid</th>
+                            <th style="width:15%;">Public Address</th>
+                            <th style="width:15%;">Seed</th>
+                            <th style="width:15%;">Balance</th>
+                            <th style="width:20%;">Limits (day/week/month)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for user in data['users']%}
+                        <tr>
+                            <td>{{user['email']}}</td>
+                            <td>{{user['uid']}}</td>
+                            <td>{{user['public_address']}}</td>
+                            <td>{{user['seed']}}</td>
+                            <td>{{user['balance']}}</td>
+                            <td>{{user['limits']['day']}}/{{user['limits']['week']}}/{{user['limits']['month']}}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header" id="headingTwo">
+            <h5 class="mb-0">
+                <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTransactions"
+                        aria-expanded="false" aria-controls="collapseTwo">
+                    Transactions
+                </button>
+            </h5>
+        </div>
+        <div id="collapseTransactions" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
+            <div class="card-body">
+                <div class="container container-fluid">
+                    <table class="table table-bordered text-center sortable">
+                        <thead>
+                        <tr>
+                            <th style="width:15%">Id (tx_hash)</th>
+                            <th style="width:20%">Uid</th>
+                            <th style="width:20%">From (address)</th>
+                            <th style="width:20%">To (address)</th>
+                            <th style="width:10%">Amount</th>
+                            <th style="width:15%">Memo</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for tx in data['transactions']%}
+                        <tr>
+                            <td>{{tx['id']}}</td>
+                            <td>{{tx['uid']}}</td>
+                            <td>{{tx['sender_address']}}</td>
+                            <td>{{tx['recipient_address']}}</td>
+                            <td>{{tx['amount']}}</td>
+                            <td>{{tx['memo']}}</td>
+
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header" id="headingThree">
+            <h5 class="mb-0">
+                <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseServer"
+                        aria-expanded="false" aria-controls="collapseServer">
+                    Server Wallet
+                </button>
+            </h5>
+        </div>
+        <div id="collapseServer" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
+            <div class="card-body">
+                <div class="container container-fluid">
+                    <table class="table table-bordered text-center sortable">
+                        <thead>
+                        <tr>
+                            <th style="width:40%;">Public Address</th>
+                            <th style="width:40%;">Seed</th>
+                            <th style="width:20%;">Balance</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{data['server']['public_address']}}</td>
+                            <td>{{data['server']['seed']}}</td>
+                            <td>{{data['server']['balance']}}</td>
+                        </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header" id="headingFour">
+            <h5 class="mb-0">
+                <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseLimits"
+                        aria-expanded="false"
+                        aria-controls="collapseLimits">
+                    Limits
+                </button>
+            </h5>
+        </div>
+
+        <div id="collapseLimits" class="collapse" aria-labelledby="headingFour" data-parent="#accordion">
+            <div class="card-body">
+                <div class="container container-fluid">
+                    <form action="/reset-limits" method="POST">
+                        <h2>Set new limits</h2>
+                        <h5>(will refresh all user limits)</h5>
+                        <div class="form-group">
+                            <label for="inputDay">Day limit</label>
+                            <input type="number" class="form-control" name="day" id="inputDay" value="{{data['limits']['day']}}">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputDay">Week limit</label>
+                            <input type="number" class="form-control" name="week" id="inputWeek" value="{{data['limits']['week']}}">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputMonth">Month limit</label>
+                            <input type="number" class="form-control" name="month" id="inputMonth" value="{{data['limits']['month']}}">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,14 +1,14 @@
 import json
 import requests
-import asyncio
+import os
 
-from quart import Quart
+from quart import Quart, render_template, session, flash
 from quart import request
 from quart import jsonify
 from kin import KinErrors
 
 import firebase_service
-import limits #runs limit resetting thread
+import limits  # runs limit resetting thread
 import errors
 
 application = app = Quart(__name__)
@@ -21,8 +21,8 @@ async def register():
         if 'email' not in data or 'password' not in data:
             return jsonify(["There is no 'email' or/and 'password' field in the request"]), 400
 
-        responce_data = await firebase_service.register(data['email'], data['password'])
-        return jsonify(responce_data), 200
+        data = await firebase_service.register(data['email'], data['password'])
+        return jsonify(data), 200
     except (errors.InvalidEmailError, errors.InvalidPasswordError) as e:
         return jsonify(e.args), 400
     except requests.exceptions.HTTPError:
@@ -39,7 +39,7 @@ async def auth():
         if 'email' not in data or 'password' not in data:
             return jsonify(["Missing 'email' and/or 'password' field in the request"]), 400
         token = firebase_service.authenticate(data['email'], data['password'])
-        return jsonify([token]), 200
+        return jsonify(token), 200
     except requests.exceptions.HTTPError:
         return jsonify(['Invalid email or password']), 400
     except (ValueError, TypeError, json.decoder.JSONDecodeError):
@@ -65,6 +65,7 @@ async def get_kins():
         return jsonify(['Invalid parameters']), 400
 
 
+# get current wallet public address
 @app.route('/api/v1/server-wallet', methods=['POST'])
 async def get_cwpa():
     try:
@@ -97,5 +98,36 @@ async def history():
         return jsonify(['Invalid parameters']), 400
 
 
+@app.route('/admin/')
+def admin_panel():
+    if not session.get('logged_in'):
+        return render_template('admin_auth.html')
+    else:
+        data = firebase_service.get_admin_data()
+        return render_template('admin-panel.html', data=data)
+
+
+@app.route('/admin-auth', methods=['POST'])
+async def admin_auth():
+    form = await request.form
+    try:
+        token = firebase_service.authenticate(form['email'], form['password'])
+        if len(token) > 1 and token[1] is True:
+            session['logged_in'] = True
+        else:
+            await flash("You don't have admin access")
+    except requests.exceptions.HTTPError:
+        await flash('Wrong email/password!')
+    return await admin_panel()
+
+
+@app.route('/reset-limits', methods=['POST'])
+async def reset_limits():
+    form = await request.form
+    firebase_service.set_limits(dict(form))
+    return await admin_panel()
+
+
 if __name__ == '__main__':
+    app.secret_key = os.urandom(12)
     app.run(debug=True, port=8000)

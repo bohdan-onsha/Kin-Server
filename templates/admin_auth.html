@@ -1,0 +1,33 @@
+<link rel="stylesheet" href="/static/auth-style.css" type="text/css">
+<body>
+
+
+<form action="/admin-auth" method="POST">
+    <div class="login">
+        <div class="login-screen">
+            <div class="app-title">
+                <h1>Admin-Panel</h1>
+            </div>
+            <div class="login-form">
+                <div class="control-group">
+                    <input type="text" class="login-field" value="" placeholder="email" name="email">
+                    <label class="login-field-icon fui-user" for="login-email"></label></div>
+                <div class="control-group">
+                    <input type="password" class="login-field" value="" placeholder="password" name="password">
+                    <label class="login-field-icon fui-lock" for="login-pass"></label></div>
+                <input type="submit" value="Log in" class="btn btn-primary btn-large btn-block">
+
+            </div>
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            <ul class=flashes>
+                {% for message in messages %}
+                <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+</form>
+</body>
