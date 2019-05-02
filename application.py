@@ -1,3 +1,10 @@
+"""
+Created by Bogdan Onsha
+15.04.19 - 02.05.19
+
+https://t.me/onsha_bogdan
+"""
+
 import json
 import requests
 import os
@@ -94,7 +101,7 @@ async def history():
         return jsonify(["User with the given uid is not exist"]), 400
     except requests.exceptions.HTTPError:
         return jsonify(['Invalid or outdated token']), 400
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, json.decoder.JSONDecodeError):
         return jsonify(['Invalid parameters']), 400
 
 
@@ -130,4 +137,4 @@ async def reset_limits():
 
 if __name__ == '__main__':
     app.secret_key = os.urandom(12)
-    app.run(debug=True, port=8000)
+    app.run(debug=False, port=8000)

@@ -156,7 +156,6 @@ async def get_kins(uid: str, token: str, amount: int, description: str) -> dict:
         raise
 
 
-
 async def create_server_wallet() -> None:
     """
             Create kin wallet that will be used like main server wallet
@@ -177,8 +176,6 @@ async def create_server_wallet() -> None:
 
     db.child('server_wallet').remove()
     db.child('server_wallet').push(data)
-
-
 
 
 def get_server_wallet_address(uid: str, token: str) -> str:
@@ -324,7 +321,7 @@ def reset_limits(period: str) -> None:
         db.child('users').child(key).update(user.val())
 
 
-def set_limits(limits):
+def set_limits(limits: dict) -> None:
     periods = ['day', 'week', 'month']
     if all(period in limits for period in periods):
         db.child('limits').remove()
@@ -387,7 +384,7 @@ def get_admin_data():
         'users': user_data,
         'transactions': txs_data,
         'server': server_data,
-        'limits':get_limits()
+        'limits': get_limits()
     }
     return data
 
@@ -433,6 +430,5 @@ def validate_password(password: str) -> bool:
 async def main():
     pass
 
-
 # for tests
-#asyncio.run(main())
+# asyncio.run(main())
