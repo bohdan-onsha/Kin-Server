@@ -31,3 +31,10 @@ class ExcessLimitError(Exception):
         message = "Wallet operations limit exceeded"
 
         super().__init__(message)
+
+
+class InvalidTokenError(Exception):
+    def __init__(self):
+        message = "Provided token is invalid"
+
+        super().__init__(message)

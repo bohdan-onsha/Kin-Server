@@ -9,6 +9,7 @@ import validate_email as validator
 import configuration
 import kin_service
 import errors
+import uuid
 
 app_id = 'NM8e'
 
@@ -33,14 +34,14 @@ async def register(email: str, password: str, is_admin=False) -> dict:
 
     """
     try:
-        validate_email(email)
-        validate_password(password)
+        _validate_email(email)
+        _validate_password(password)
     except (errors.InvalidEmailError, errors.InvalidPasswordError):
         raise
 
     user = auth.create_user_with_email_and_password(email, password)
     async with kin_service.get_client() as client:
-        server_account = await get_server_account(client)
+        server_account = await _get_server_account(client)
         account = await kin_service.create_account(client, server_account)
         data = {
             'public_address': account.keypair.public_address,
@@ -48,7 +49,8 @@ async def register(email: str, password: str, is_admin=False) -> dict:
             'balance': await account.get_balance(),
             'email': user['email'],
             'uid': user['localId'],
-            'limits': get_limits(),
+            'token': _generate_token(),
+            'limits': _get_limits(),
             'is_admin': is_admin
         }
 
@@ -56,7 +58,7 @@ async def register(email: str, password: str, is_admin=False) -> dict:
     return data
 
 
-def authenticate(email: str, password: str) -> list:
+def authenticate(email: str, password: str) -> dict:
     """
             Authenticates firebase account
 
@@ -71,39 +73,24 @@ def authenticate(email: str, password: str) -> list:
     try:
         user = auth.sign_in_with_email_and_password(email, password)
         uid = user['localId']
-        data = db.child('users').child().order_by_child('uid').equal_to(uid).get().each()[0].val()
-        if data['is_admin']:
-            return [user['idToken'], True]
-        return [user['idToken']]
+        token = _generate_token()
+
+        query = db.child('users').child().order_by_child('uid').equal_to(uid).get().each()[0]
+        data = query.val()
+        data['token'] = token
+        key = query.key()
+        db.child('users').child(key).update(data)
+
+        return {
+            'token': token,
+            'uid': uid,
+            'is_admin': data['is_admin'],
+        }
     except requests.exceptions.HTTPError:
         raise
 
 
-def get_account_keypair(uid: str, token: str) -> dict:
-    """
-            Returns public wallet address and secret seed of the account with the given uid
-
-            :param uid: uid of the account
-            :param token: active firebase token
-
-            :return: Dictionary with keypair data (public address, seed)
-
-            :raises: :class: errors.AccountNotFoundError if account with the given uid does not exist
-
-    """
-    query = db.child("users").child().order_by_child("uid").equal_to(uid).get(token=token)
-    try:
-        user_data = query.each()[0].val()
-    except IndexError:
-        raise errors.ItemNotFoundError()
-    data = {
-        'public_address': user_data['email'],
-        'seed': user_data['email'],
-    }
-    return data
-
-
-async def get_kins(uid: str, token: str, amount: int, description: str) -> dict:
+async def replenish(uid: str, token: str, amount: int, description: str) -> dict:
     """
             Send kin from current server wallet to wallet linked with the given uid
             Also push the data about transaction and wallet balances to the db
@@ -120,24 +107,25 @@ async def get_kins(uid: str, token: str, amount: int, description: str) -> dict:
 
             :return dictionary with transaction data
     """
-    user_query = db.child("users").child().order_by_child("uid").equal_to(uid).get(token=token)
+    user_query = db.child("users").child().order_by_child("uid").equal_to(uid).get()
     server_query = db.child("server_wallet").child().get()
     try:
+        _check_token(uid, token)
         user_data = user_query.each()[0].val()
         recipient_address = user_data['public_address']
         server_wallet_data = server_query.each()[0].val()
         server_wallet_keypair = kin_service.get_keypair(seed=server_wallet_data['seed'])
 
-        check_user_limits(uid, amount)
+        _check_user_limits(uid, amount)
     except IndexError:
         raise errors.ItemNotFoundError()
-    except errors.ExcessLimitError:
+    except (errors.ExcessLimitError, errors.InvalidTokenError):
         raise
     try:
         async with kin_service.get_client() as client:
             account = client.kin_account(server_wallet_keypair.secret_seed, app_id=app_id)
             transaction = await kin_service.send_kin(client, account, recipient_address, amount, description)
-            user_limits = get_user_limits(uid, amount)
+            user_limits = _get_user_limits(uid, amount)
             tx_data = {
                 'id': transaction['id'],
                 'uid': user_data['uid'],
@@ -147,35 +135,59 @@ async def get_kins(uid: str, token: str, amount: int, description: str) -> dict:
                 'sender_address': transaction['source']
             }
             db.child('transactions').push(tx_data)
-        await update_server_wallet_balance()
-        await update_wallet_balance(uid)
-        update_user_limits(uid, user_limits)
+        await _update_server_wallet_balance()
+        balance = await _update_wallet_balance(uid)
+
+        tx_data['balance'] = balance
+
+        _update_user_limits(uid, user_limits)
 
         return tx_data
     except (kin.KinErrors.LowBalanceError, kin.KinErrors.NotValidParamError):
         raise
 
 
-async def create_server_wallet() -> None:
-    """
-            Create kin wallet that will be used like main server wallet
-            Replace old server wallet with itself
+async def pay(uid: str, token: str, amount: int, description: str):
+    try:
+        _check_token(uid, token)
+        user_query = db.child("users").child().order_by_child("uid").equal_to(uid).get()
+        user_data = user_query.each()[0].val()
+        user_seed = user_data['seed']
 
-
-    """
-
+        server_address = get_server_wallet_address(uid, token)
+    except (IndexError, requests.exceptions.HTTPError, errors.InvalidTokenError):
+        raise
     async with kin_service.get_client() as client:
-        keypair = kin_service.get_keypair(seed='SARVQW7AA7CF7TWXRY4ERJR5BYQOT6LN4CTL66YNXFYL2JDSYJUMSN4F')
-        account = client.kin_account(keypair.secret_seed, app_id=app_id)
-
-        data = {
-            'public_address': account.keypair.public_address,
-            'seed': account.keypair.secret_seed,
-            'balance': await account.get_balance(),
+        user_account = client.kin_account(user_seed, app_id=app_id)
+        try:
+            transaction = await kin_service.send_kin(client, user_account, server_address, amount, description)
+        except kin.errors.LowBalanceError:
+            raise
+        tx_data = {
+            'id': transaction['id'],
+            'uid': user_data['uid'],
+            'memo': transaction['memo'],
+            'amount': transaction['operation']['amount'],
+            'recipient_address': transaction['operation']['destination'],
+            'sender_address': transaction['source']
         }
+        db.child('transactions').push(tx_data)
+    await _update_server_wallet_balance()
+    balance = await _update_wallet_balance(uid)
 
-    db.child('server_wallet').remove()
-    db.child('server_wallet').push(data)
+    tx_data['balance'] = balance
+    return tx_data
+
+
+def get_balance(uid: str, token: str) -> float:
+    try:
+        _check_token(uid, token)
+
+        data = db.child('users').child().order_by_child('uid').equal_to(uid).get()
+        user = data.each()[0].val()
+        return user['balance']
+    except (IndexError, errors.InvalidTokenError):
+        raise
 
 
 def get_server_wallet_address(uid: str, token: str) -> str:
@@ -191,11 +203,88 @@ def get_server_wallet_address(uid: str, token: str) -> str:
             :raises: errors.ItemNotFoundError if user with given uid does not exist
     """
     try:
-        get_account_keypair(uid, token)
+        _check_token(uid, token)
         wallet_data = get_server_wallet()
         return wallet_data['public_address']
-    except errors.ItemNotFoundError:
+    except (errors.ItemNotFoundError, IndexError, errors.InvalidTokenError):
         raise
+
+
+def history(uid: str, token: str) -> list:
+    """
+            Returns associated with server wallet kin.KinAccount instance
+
+            :param uid: uid of the user
+            :param token: active firebase token
+
+            :return: dictionary with all users transactions
+    """
+    try:
+        _check_token(uid, token)
+        data = db.child('transactions').child().order_by_child('uid').equal_to(uid).get()
+
+        return [i.val() for i in data.each()]
+    except (IndexError, errors.InvalidTokenError):
+        raise
+
+
+def log_out(uid):
+    try:
+        query = db.child('users').child().order_by_child('uid').equal_to(uid).get().each()[0]
+        key = query.key()
+        user_data = query.val()
+        del (user_data['token'])
+        db.child('users').child(key).child('token').remove()
+    except (KeyError, IndexError):
+        raise
+
+
+async def _create_server_wallet(seed) -> None:
+    """
+            Create kin wallet that will be used like main server wallet
+            Replace old server wallet with itself
+
+
+    """
+
+    async with kin_service.get_client() as client:
+        keypair = kin_service.get_keypair(seed=seed)
+        account = client.kin_account(keypair.secret_seed, app_id=app_id)
+
+        data = {
+            'public_address': account.keypair.public_address,
+            'seed': account.keypair.secret_seed,
+            'balance': await account.get_balance(),
+        }
+
+    db.child('server_wallet').remove()
+    db.child('server_wallet').push(data)
+
+
+'''
+def get_account_keypair(uid: str) -> dict:
+    """
+            Returns public wallet address and secret seed of the account with the given uid
+
+            :param uid: uid of the account
+            :param token: active firebase token
+
+            :return: Dictionary with keypair data (public address, seed)
+
+            :raises: :class: errors.AccountNotFoundError if account with the given uid does not exist
+
+    """
+    query = db.child("users").child().order_by_child("uid").equal_to(uid).get()
+    try:
+        user_data = query.each()[0].val()
+    except (IndexError, errors.InvalidTokenError):
+        raise
+    data = {
+        'public_address': user_data['email'],
+        'seed': user_data['email'],
+    }
+    return data
+'''
 
 
 def get_server_wallet() -> dict:
@@ -213,10 +302,10 @@ def get_server_wallet() -> dict:
         wallet_data = query.each()[0].val()
         return wallet_data
     except IndexError:
-        raise errors.ItemNotFoundError()
+        raise
 
 
-async def get_server_account(client: kin.KinClient) -> kin.KinAccount:
+async def _get_server_account(client: kin.KinClient) -> kin.KinAccount:
     """
             Returns associated with server wallet kin.KinAccount instance
 
@@ -229,22 +318,7 @@ async def get_server_account(client: kin.KinClient) -> kin.KinAccount:
     return account
 
 
-def history(uid: str, token: str) -> list:
-    """
-            Returns associated with server wallet kin.KinAccount instance
-
-            :param uid: uid of the user
-            :param token: active firebase token
-
-            :return: dictionary with all users transactions
-    """
-    data = db.child('transactions').child().order_by_child('uid').equal_to(uid).get(token=token)
-    if len(data.each()) == 0:
-        raise errors.ItemNotFoundError
-    return [i.val() for i in data.each()]
-
-
-def get_user_limits(uid: str, amount=None) -> dict:
+def _get_user_limits(uid: str, amount=None) -> dict:
     """
             Returns user transaction limits data
             If amount is transmitted, return user limits after transaction
@@ -264,7 +338,7 @@ def get_user_limits(uid: str, amount=None) -> dict:
     return user_limits
 
 
-def update_user_limits(uid: str, limits: dict) -> None:
+def _update_user_limits(uid: str, limits: dict) -> None:
     """
             Replace current user limits with the given limits dict
 
@@ -282,7 +356,7 @@ def update_user_limits(uid: str, limits: dict) -> None:
     db.child('users').child(key).update(user_data)
 
 
-def check_user_limits(uid, amount):
+def _check_user_limits(uid, amount):
     """
             Checks if user limits satisfy ongoing transaction
 
@@ -294,7 +368,7 @@ def check_user_limits(uid, amount):
             :raises: :class: errors.ExcessLimitError otherwise
 
     """
-    user_limits = get_user_limits(uid)
+    user_limits = _get_user_limits(uid)
 
     if all(int(limit) >= amount for limit in user_limits.values()):
         return True
@@ -311,7 +385,7 @@ def reset_limits(period: str) -> None:
 
      """
     raw_data = db.child('users').child().get().each()
-    limits = get_limits()
+    limits = _get_limits()
     if period not in limits.keys():
         period = 'day'
     for user in raw_data:
@@ -319,6 +393,7 @@ def reset_limits(period: str) -> None:
         key = user.key()
         user_data['limits'][period] = limits[period]
         db.child('users').child(key).update(user.val())
+
 
 
 def set_limits(limits: dict) -> None:
@@ -331,12 +406,13 @@ def set_limits(limits: dict) -> None:
             reset_limits(period)
 
 
-def get_limits():
+
+def _get_limits():
     data = db.child('limits').get()
     return data.each()[0].val()
 
 
-async def update_server_wallet_balance() -> None:
+async def _update_server_wallet_balance() -> None:
     """
             Updates balance of server wallet at db
 
@@ -349,11 +425,13 @@ async def update_server_wallet_balance() -> None:
     db.child('server_wallet').child(key).update(wallet_data)
 
 
-async def update_wallet_balance(uid: str) -> None:
+async def _update_wallet_balance(uid: str) -> int:
     """
             Updates balance of kin wallet linked to the given uid
 
             :raises: errors.ItemNotFoundError if user with given uid does not exist
+
+            :return Current wallet balance
     """
     try:
         user_query = db.child("users").child().order_by_child("uid").equal_to(uid).get()
@@ -370,6 +448,8 @@ async def update_wallet_balance(uid: str) -> None:
     key = data.each()[0].key()
     db.child('users').child(key).update(user_data)
 
+    return current_balance
+
 
 def get_admin_data():
     users_raw = db.child('users').get()
@@ -384,12 +464,28 @@ def get_admin_data():
         'users': user_data,
         'transactions': txs_data,
         'server': server_data,
-        'limits': get_limits()
+        'limits': _get_limits()
     }
     return data
 
 
-def validate_email(email: str) -> bool:
+def _generate_token():
+    token = uuid.uuid4()
+    return token.hex
+
+
+def _check_token(uid: str, token: str):
+    try:
+        data = db.child('users').child().order_by_child('uid').equal_to(uid).get().each()[0].val()
+        if data['token'] == token:
+            return True
+        else:
+            raise errors.InvalidTokenError
+    except IndexError:
+        raise
+
+
+def _validate_email(email: str) -> bool:
     """
             Checks if email is valid and exists
 
@@ -407,7 +503,7 @@ def validate_email(email: str) -> bool:
         raise errors.InvalidEmailError()
 
 
-def validate_password(password: str) -> bool:
+def _validate_password(password: str) -> bool:
     """
             Checks if password:
                 - Has at least 8 characters
@@ -430,5 +526,6 @@ def validate_password(password: str) -> bool:
 async def main():
     pass
 
+
 # for tests
-# asyncio.run(main())
+#asyncio.run(main())
