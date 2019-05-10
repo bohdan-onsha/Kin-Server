@@ -55,14 +55,14 @@
 
 #### Input: 
 ```
-{
+ body{
  "email":"YourMail@gmail.com",
  "password": "yourpassword228"
  }
  ```
  #### Output:
  ```
- {
+{
     "balance": 0,
     "email": "YourMail@gmail.com",
     "is_admin": false,
@@ -71,9 +71,10 @@
         "month": "15000",
         "week": "5000"
     },
-    "public_address": "GBW4NQFQH6IOOPKY5ZXKS2U4D5FDW6PIXCFJQIXM2GXP2OR4COBQGHIR",
-    "seed": "SC6WPRW4ORYAAJVJ2KQC6GSTPSVL7IC2CQFG7ITMASGPH4NSBSSQTPSO",
-    "uid": "Oy46pOMn6lfJrMJnBMForPaDDyT2"
+    "public_address": "GDYXLK2MLGNTWMDTBTCJ2C7X6GQVYGV4234EZDOLNGPATUS64EUJ5M3W",
+    "seed": "SB2COATQYWFZ6TE5NRZBWDYC3ZKVA3KXGSLKD3DLYNMKJRX3C242LHII",
+    "token": "a6e2347889404034a4f442d27269ca29",
+    "uid": "U7y8MR1c6eTa4qb62JICaxn4jBr2"
 }
 ```
 
@@ -81,32 +82,27 @@
 
 #### Input: 
 ```
-{
+ body{
  "email":"YourMail@gmail.com",
  "password": "yourpassword228"
  }
  ```
  #### Output:
  ```
- [
-    "eyJhbGciOiJSUzI1NiIsImtpZCI6IjM4MDEwNjVlNGI1NjNhZWVlZWIzNTkwOTEwZDlmOTc3YTgxMjMwOWEiLCJ0eXAiOiJKV1QifQ.e
-    yJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20va2luc2VydmVyLTUyZWU4IiwiYXVkIjoia2luc2VydmVyLTUyZWU4Ii
-    wiYXV0aF90aW1lIjoxNTU2Nzk2NTEzLCJ1c2VyX2lkIjoiT3k0NnBPTW42bGZKck1KbkJNRm9yUGFERHlUMiIsInN1YiI6Ik95NDZwT01u
-    NmxmSnJNSm5CTUZvclBhRER5VDIiLCJpYXQiOjE1NTY3OTY1MTMsImV4cCI6MTU1NjgwMDExMywiZW1haWwiOiJvbnNoYS5ib2dkYW4yMD
-    AwQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJlbWFpbCI6WyJvbnNoYS5i
-    b2dkYW4yMDAwQGdtYWlsLmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6InBhc3N3b3JkIn19.QAEp_gS2eyqkMF0ssaJAeH3aLXs60lDiv
-    60GgOUzn1T6nJJJiuf4-ieWuDF9SCrDhpyx5Ca-5xI4W5KXtkUvJCFY8BWx5vQn5oxa4PmQ1j6auFkWFqdad9FHfSIsLZ2_R65B550-jPu
-    YYbkOVFsL_f3GRwNk5hYzau65a_kJEa1OWp_TkhQ1NbCzHHv92X6DqYpZXQMa_6LbKokbwLGie5Ll79NQrAcBegfadvxqE7pdo-8eWKxGb
-    DyttOqJauahg0HDiNI7RQ6MWjMqHzsTAyLPq5jKrxna_IMiHKp4sW_ZykQaPr8TArvOwezSVAqyDLJBx2UrCZ9RuKvRJraFVg"
-]
+{
+    "is_admin": false,
+    "token": "9188dace30f34f31b0bf172d570e55fb"
+}
 ```
 
-### 3. Send kins to user: `/api/v1/user/get-kins`
+### 3. Send kins to user: `/api/v1/user/replenish`
 
 #### Input: 
 ```
-{
-   "uid": "Oy46pOMn6lfJrMJnBMForPaDDyT2",
+headers{
+    "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
+}
+body{
    "token":"eyJhbGciOiJSUzI1NiIsImtpZCII7RQx2UrCZ9RuKvRJraFVg...",
    "amount":100,
    "description" : "example-descr"
@@ -115,23 +111,69 @@
  #### Output:
  ```
 {
-   "amount": 100,
-   "id": "85206471492e4b02cf0c3bbccc93a439d42a155256029a083bea6faf1b273567",
-   "memo": "1-NM8e-example-descr",
-   "recipient_address": "GBW4NQFQH6IOOPKY5ZXKS2U4D5FDW6PIXCFJQIXM2GXP2OR4COBQGHIR",
-   "sender_address": "GCW25THTQ6YP32QV6JVMRKX2SYWLBM345WKN2PBTCTTDZET2HMSPMIAY",
-   "uid": "Oy46pOMn6lfJrMJnBMForPaDDyT2"
+    "amount": 10,
+    "balance": 79.998,
+    "id": "b4a520698fd5b114fe3c2c1c4fa6f174a587064629eacad4668897d28a53ec04",
+    "memo": "1-NM8e-api",
+    "recipient_address": "GC3DZ7PIJL4NADTAPWIJXAOANQ37KJB3BQWQADXAEDIWM3TOIRTSDXAF",
+    "sender_address": "GCW25THTQ6YP32QV6JVMRKX2SYWLBM345WKN2PBTCTTDZET2HMSPMIAY",
+    "uid": "ml3UADqweOXYznUaQPGLPmDklOz1"
 }
 ```
 
 
-### 4. Get current server wallet public address: `/api/v1/server-wallet`
+### 4. Send kins to server: `/api/v1/user/pay`
 
 #### Input: 
 ```
+headers{
+    "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
+}
+body{
+   "token":"eyJhbGciOiJSUzI1NiIsImtpZCII7RQx2UrCZ9RuKvRJraFVg...",
+   "amount":100,
+   "description" : "example-descr"
+}
+ ```
+ #### Output:
+ ```
 {
- "uid": "Oy46pOMn6lfJrMJnBMForPaDDyT2",
- "token":"eyJhbGciOiJSUzI12VydmVyLTUyZWU4IiwiYk0NnBPTW4siaWRlbng..."
+    "amount": 10,
+    "balance": 69.997,
+    "id": "f7a761b97be8c4fa10ddd9329c214bd97c13663bb36504cf9b501d696cd029cb",
+    "memo": "1-NM8e-api",
+    "recipient_address": "GCW25THTQ6YP32QV6JVMRKX2SYWLBM345WKN2PBTCTTDZET2HMSPMIAY",
+    "sender_address": "GC3DZ7PIJL4NADTAPWIJXAOANQ37KJB3BQWQADXAEDIWM3TOIRTSDXAF",
+    "uid": "ml3UADqweOXYznUaQPGLPmDklOz1"
+}
+```
+### 5. Get user balance: `/api/v1/user/balance`
+
+#### Input: 
+```
+headers{
+    "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
+}
+body{
+    "token":"703392294f934aa0b9ce823a70a2e800"
+}
+ ```
+#### Output:
+ ```
+[
+    69.997
+]
+```
+
+### 6. Get current server wallet public address: `/api/v1/server-wallet`
+
+#### Input: 
+```
+headers{
+    "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
+}
+body{
+    "token":"703392294f934aa0b9ce823a70a2e800"
 }
  ```
 #### Output:
@@ -141,13 +183,15 @@
 ]
 ```
 
-### 5. Get user transaction history: `/api/v1/user/history`
+### 7. Get user transaction history: `/api/v1/user/history`
 
 #### Input: 
 ```
+headers{
+    "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
+}
 {
- "uid": "Oy46pOMn6lfJrMJnBMForPaDDyT2",
- "token":"eyJhbGciOiJSUzI12VydmVyLTUyZWU4IiwiYk0NnBPTW4siaWRlbng..."
+ "token":"703392294f934aa0b9ce823a70a2e800"
 }
  ```
 #### Output:
@@ -162,6 +206,21 @@
         "uid": "Oy46pOMn6lfJrMJnBMForPaDDyT2"
     }
 ]
+```
+
+### 8. Logout user: `/api/v1/user/logout`
+
+#### Input: 
+```
+headers{
+    "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
+}
+ ```
+#### Output:
+ ```
+{
+true
+}
 ```
 
 ## Admin panel
