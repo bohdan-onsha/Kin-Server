@@ -71,7 +71,6 @@ async def replenish():
         return jsonify(["Something's wrong with the server"])
 
 
-# uid, token, amount, desctiption
 @app.route('/api/v1/user/pay', methods=['POST'])
 async def pay():
     try:
@@ -189,5 +188,4 @@ async def reset_limits():
 
 
 if __name__ == '__main__':
-    app.secret_key = os.urandom(12)
-    app.run(debug=True, port=8000)
+    app.run(debug=True, host='0.0.0.0')
