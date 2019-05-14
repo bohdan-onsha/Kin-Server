@@ -16,7 +16,7 @@
       "messagingSenderId": ""
   }
 ```
-7. `Change your firebase rules as in the example below`
+7. Change your firebase rules as in the example below
 ```
 {
   "rules": {
@@ -31,7 +31,27 @@
     }
 }
 ```
-8. `python application.py &`
+8. Change `app.secret_key` in `application.py`
+
+## Deployment (Ubuntu 16.04)
+#### Install python3.7, pip and virtualenv
+1. `sudo apt update`
+2. `sudo apt install software-properties-common`
+3. `sudo add-apt-repository ppa:deadsnakes/ppa`
+4. `sudo apt update`
+5. `sudo apt install python3.7`
+6. `sudo apt install python3-pip`
+7. `sudo apt install python3.7-dev`
+8. `python3.7 -m pip install virtualenv`
+
+#### Clone project and install dependencies
+1. `mkdir /var/Kin`
+2. `cd /var/Kin`
+3. `git clone https://github.com/OnshaBogdan/Kin-Server.git`
+4. `cd Kin-Server/`
+5. `virtualenv -p python3.7 .venv`
+6. `source .venv/bin/activate`
+7. `python3.7 -m pip install -r requirements.txt`
 
 ## Project Structure
 ```bash
@@ -46,6 +66,7 @@
 ├── kin-service.py          # Kin-sdk driver
 ├── limits.py               # Script that refreshes user limits periodically
 ├── create-admin.py         # Creates user with admin panel access
+├── wsgi.py                 # Gunicorn/Uvicorn entry point
 └── requirements.txt.md     # Project dependencies
 ```
 
