@@ -525,6 +525,5 @@ def _validate_password(password: str) -> bool:
 async def main():
     pass
 
-
 # for tests
-#asyncio.run(main())
+# asyncio.run(main())
