@@ -1,4 +1,4 @@
-## Installation
+## Local installation
 0. `Make sure you have python 3.7 and pip installed`
 1. `git clone https://github.com/OnshaBogdan/Kin-Server.git`
 2. `cd Kin-Server/`
@@ -52,7 +52,7 @@
 5. `virtualenv -p python3.7 .venv`
 6. `source .venv/bin/activate`
 7. `python3.7 -m pip install -r requirements.txt`
-
+8. `gunicorn -k uvicorn.workers.UvicornWorker --bind="0.0.0.0:5000" wsgi:app --daemon --access-logfile access-log.txt --error-logfile error-log.txt`
 ## Project Structure
 ```bash
 .
