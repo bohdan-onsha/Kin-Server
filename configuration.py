@@ -1,8 +1,8 @@
 config = {
-    "apiKey": "AIzaSyBjDABAxwbPFwxwjpO_NOi0wvkiyJ4VDRg",
-    "authDomain""": "kinserver-52ee8.firebaseapp.com",
-    "databaseURL": "https://kinserver-52ee8.firebaseio.com",
-    "projectId": "kinserver-52ee8",
-    "storageBucket": "kinserver-52ee8.appspot.com",
-    "messagingSenderId": "393453917701"
+    "apiKey": "AIzaSyCKv3CuN3ayO2q7hEPUowPVnx6dKu6TJ64",
+    "authDomain""": "kin-2-3e705.firebaseapp.com",
+    "databaseURL": "https://kin-2-3e705.firebaseio.com",
+    "projectId": "kin-2-3e705",
+    "storageBucket": "kin-2-3e705.appspot.com",
+    "messagingSenderId": "794294016086"
 }

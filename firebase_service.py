@@ -119,7 +119,7 @@ async def replenish(uid: str, token: str, amount: int, description: str) -> dict
         _check_user_limits(uid, amount)
     except IndexError:
         raise errors.ItemNotFoundError()
-    except (errors.ExcessLimitError, errors.InvalidTokenError):
+    except:
         raise
     try:
         async with kin_service.get_client() as client:
@@ -161,8 +161,9 @@ async def pay(uid: str, token: str, amount: int, description: str):
         user_account = client.kin_account(user_seed, app_id=app_id)
         try:
             transaction = await kin_service.send_kin(client, user_account, server_address, amount, description)
-        except kin.errors.LowBalanceError:
+        except:
             raise
+
         tx_data = {
             'id': transaction['id'],
             'uid': user_data['uid'],
@@ -395,7 +396,6 @@ def reset_limits(period: str) -> None:
         db.child('users').child(key).update(user.val())
 
 
-
 def set_limits(limits: dict) -> None:
     periods = ['day', 'week', 'month']
     if all(period in limits for period in periods):
@@ -404,7 +404,6 @@ def set_limits(limits: dict) -> None:
 
         for period in periods:
             reset_limits(period)
-
 
 
 def _get_limits():

@@ -34,7 +34,8 @@ async def register():
         return jsonify(["User with that email already exists"]), 400
     except (ValueError, TypeError, KeyError, json.decoder.JSONDecodeError):
         return jsonify(['Invalid parameters']), 400
-
+    except:
+        return jsonify(["Something's wrong with the server"])
 
 @app.route('/api/v1/user/auth', methods=['POST'])
 async def auth():
@@ -46,7 +47,8 @@ async def auth():
         return jsonify(['Invalid email or password']), 400
     except (ValueError, TypeError, KeyError, json.decoder.JSONDecodeError):
         return jsonify(['Invalid parameters']), 400
-
+    except:
+        return jsonify(["Something's wrong with the server"])
 
 @app.route('/api/v1/user/replenish', methods=['POST'])
 async def replenish():
@@ -147,7 +149,8 @@ async def history():
         return jsonify(['Invalid parameters']), 400
     except KeyError:
         return jsonify(["Missing 'uid' field in headers"])
-
+    except:
+        return jsonify(["Something's wrong with the server"])
 
 @app.route('/api/v1/user/logout', methods=['POST'])
 async def logout():
