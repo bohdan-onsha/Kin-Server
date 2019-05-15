@@ -19,6 +19,7 @@ import limits  # runs limit resetting thread
 import errors
 
 application = app = Quart(__name__)
+app.secret_key = 'fYF3ZAvEv7wampZz'
 
 
 @app.route('/api/v1/user/register', methods=['POST'])
@@ -167,6 +168,7 @@ async def logout():
     except:
         return jsonify(["Something's wrong with the server"])
 
+
 @app.route('/admin/')
 def admin_panel():
     if not session.get('logged_in'):
@@ -198,6 +200,5 @@ async def reset_limits():
 
 
 if __name__ == '__main__':
-    app.secret_key = 'fYF3ZAvEv7wampZz'
-    app.run(debug=True)
+    app.run(debug=True, port=8000)
     # app.run(debug=False, host='0.0.0.0')
