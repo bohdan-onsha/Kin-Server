@@ -69,7 +69,7 @@ async def send_kin(client: kin.KinClient, account: kin.KinAccount, destination: 
         transaction = await client.get_transaction_data(tx_hash=tx_hash)
         transaction.operation = vars(transaction.operation)
         return vars(transaction)
-    except (kin.KinErrors.LowBalanceError, kin.KinErrors.NotValidParamError):
+    except (kin.KinErrors.LowBalanceError, kin.KinErrors.NotValidParamError, kin.KinErrors.AccountNotFoundError):
         raise
 
 

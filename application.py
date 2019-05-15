@@ -53,8 +53,8 @@ async def auth():
         return jsonify(["Something's wrong with the server"])
 
 
-@app.route('/api/v1/user/replenish', methods=['POST'])
-async def replenish():
+@app.route('/api/v1/user/earn', methods=['POST'])
+async def earn():
     data = json.loads(await request.data)
     fields = ['token', 'amount', 'description']
     if not all(field in data for field in fields):
@@ -87,8 +87,6 @@ async def pay():
 
         data = await firebase_service.pay(uid, data['token'], data['amount'], data['description'])
         return jsonify(data), 200
-    except requests.exceptions.HTTPError:
-        return jsonify(['Invalid or outdated token']), 400
     except (IndexError, ValueError, KeyError, KinErrors.NotValidParamError):
         return jsonify(['Invalid parameters']), 400
     except KinErrors.LowBalanceError:
@@ -105,7 +103,7 @@ async def balance():
         token = data['token']
 
         current_balance = firebase_service.get_balance(uid, token)
-        return jsonify([current_balance]), 200
+        return jsonify({'balance': current_balance}), 200
     except requests.exceptions.HTTPError:
         return jsonify(['Invalid or outdated token']), 400
     except (KinErrors.NotValidParamError, ValueError, TypeError, KeyError, IndexError):
@@ -123,7 +121,7 @@ async def get_cwpa():
             return jsonify("Missing 'token' field in the request")
         uid = request.headers['uid']
         address = firebase_service.get_server_wallet_address(uid, data['token'])
-        return jsonify([address]), 200
+        return jsonify({'public_address': address}), 200
     except errors.ItemNotFoundError:
         return jsonify(["User with the given uid does not exist"])
     except requests.exceptions.HTTPError:
@@ -162,7 +160,7 @@ async def logout():
         uid = request.headers['uid']
 
         firebase_service.log_out(uid)
-        return jsonify(True)
+        return jsonify({'status': True})
     except (KeyError, IndexError):
         return jsonify('Wrong parameters'), 400
     except:
