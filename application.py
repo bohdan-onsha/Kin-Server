@@ -36,7 +36,7 @@ async def register():
     except (ValueError, TypeError, KeyError, json.decoder.JSONDecodeError):
         return jsonify(['Invalid parameters']), 400
     except:
-        return jsonify(["Something's wrong with the server"])
+        return jsonify(["Something's wrong with the server"]),400
 
 
 @app.route('/api/v1/user/auth', methods=['POST'])
@@ -73,7 +73,7 @@ async def earn():
     except (KinErrors.NotValidParamError, ValueError, TypeError, KeyError):
         return jsonify(['Invalid parameters']), 400
     except:
-        return jsonify(["Something's wrong with the server"])
+        return jsonify(["Something's wrong with the server"]),400
 
 
 @app.route('/api/v1/user/pay', methods=['POST'])
@@ -92,7 +92,7 @@ async def pay():
     except KinErrors.LowBalanceError:
         return jsonify(['Insufficient funds on user wallet']), 400
     except:
-        return jsonify(["Something's wrong with the server"])
+        return jsonify(["Something's wrong with the server"]),400
 
 
 @app.route('/api/v1/user/balance', methods=['POST'])
@@ -109,7 +109,7 @@ async def balance():
     except (KinErrors.NotValidParamError, ValueError, TypeError, KeyError, IndexError):
         return jsonify(['Invalid parameters']), 400
     except:
-        return jsonify(["Something's wrong with the server"])
+        return jsonify(["Something's wrong with the server"]),400
 
 
 # get current wallet public address
@@ -129,9 +129,9 @@ async def get_cwpa():
     except (ValueError, TypeError, json.decoder.JSONDecodeError):
         return jsonify(['Invalid parameters']), 400
     except KeyError:
-        return jsonify(["Missing 'uid' field in headers"])
+        return jsonify(["Missing 'uid' field in headers"]),400
     except:
-        return jsonify(["Something's wrong with the server"])
+        return jsonify(["Something's wrong with the server"]),400
 
 
 @app.route('/api/v1/user/history', methods=['POST'])
@@ -149,9 +149,9 @@ async def history():
     except (ValueError, TypeError, json.decoder.JSONDecodeError):
         return jsonify(['Invalid parameters']), 400
     except KeyError:
-        return jsonify(["Missing 'uid' field in headers"])
+        return jsonify(["Missing 'uid' field in headers"]),400
     except:
-        return jsonify(["Something's wrong with the server"])
+        return jsonify(["Something's wrong with the server"]),400
 
 
 @app.route('/api/v1/user/logout', methods=['POST'])
@@ -164,7 +164,7 @@ async def logout():
     except (KeyError, IndexError):
         return jsonify('Wrong parameters'), 400
     except:
-        return jsonify(["Something's wrong with the server"])
+        return jsonify(["Something's wrong with the server"]),400
 
 
 @app.route('/admin/')

@@ -6,7 +6,7 @@ import kin
 import pyrebase
 import validate_email as validator
 
-import configuration
+import configuration_prod as configuration
 import kin_service
 import errors
 import uuid
@@ -524,6 +524,5 @@ def _validate_password(password: str) -> bool:
 
 async def main():
     pass
-
 # for tests
 #asyncio.run(main())
