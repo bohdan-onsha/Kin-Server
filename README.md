@@ -116,7 +116,7 @@
 }
 ```
 
-### 3. Send kins to user: `/api/v1/user/replenish`
+### 3. Send kins to user: `/api/v1/user/earn`
 
 #### Input: 
 ```
