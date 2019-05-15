@@ -44,7 +44,7 @@ async def auth():
     try:
         data = json.loads(await request.data)
         auth_data = firebase_service.authenticate(data['email'], data['password'])
-        return jsonify({'token': auth_data['token'], 'is_admin': auth_data['is_admin']}), 200, {'uid': auth_data['uid']}
+        return jsonify({'token': auth_data['token'], 'is_admin': auth_data['is_admin'], 'uid': auth_data['uid']}), 200
     except requests.exceptions.HTTPError:
         return jsonify(['Invalid email or password']), 400
     except (ValueError, TypeError, KeyError, json.decoder.JSONDecodeError):
