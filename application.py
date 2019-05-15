@@ -37,6 +37,7 @@ async def register():
     except:
         return jsonify(["Something's wrong with the server"])
 
+
 @app.route('/api/v1/user/auth', methods=['POST'])
 async def auth():
     try:
@@ -49,6 +50,7 @@ async def auth():
         return jsonify(['Invalid parameters']), 400
     except:
         return jsonify(["Something's wrong with the server"])
+
 
 @app.route('/api/v1/user/replenish', methods=['POST'])
 async def replenish():
@@ -152,13 +154,18 @@ async def history():
     except:
         return jsonify(["Something's wrong with the server"])
 
+
 @app.route('/api/v1/user/logout', methods=['POST'])
 async def logout():
-    uid = request.headers['uid']
+    try:
+        uid = request.headers['uid']
 
-    firebase_service.log_out(uid)
-    return jsonify(True)
-
+        firebase_service.log_out(uid)
+        return jsonify(True)
+    except (KeyError, IndexError):
+        return jsonify('Wrong parameters'), 400
+    except:
+        return jsonify(["Something's wrong with the server"])
 
 @app.route('/admin/')
 def admin_panel():
@@ -193,3 +200,4 @@ async def reset_limits():
 if __name__ == '__main__':
     app.secret_key = 'fYF3ZAvEv7wampZz'
     app.run(debug=True)
+    # app.run(debug=False, host='0.0.0.0')
