@@ -1,8 +1,7 @@
-import asyncio
 import kin
 
 import errors
-from pprint import pprint
+
 app_id = 'NM8e'
 
 
@@ -107,4 +106,4 @@ async def main():
         pass
 
 # for tests
-#asyncio.run(main())
+# asyncio.run(main())

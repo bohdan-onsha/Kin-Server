@@ -6,7 +6,7 @@ import kin
 import pyrebase
 import validate_email as validator
 
-import configuration_prod as configuration
+import configuration
 import kin_service
 import errors
 import uuid
@@ -25,12 +25,12 @@ async def register(email: str, password: str, is_admin=False) -> dict:
 
             :param email: Email address that will be linked to account
             :param password: Password of the account
-            :param is_admin: access to admin panel
+            :param is_admin: Access to admin panel
 
             :return: Dictionary with account data (public address, seed, balance, email, uid)
 
-            :raises: :class: errors.InvalidEmailError if email is wrong or does not exist
-            :raises: :class: errors.InvalidPasswordError`: if the password is too weak (more than 8 symbols)
+            :raises: :class: errors.InvalidEmailError: if email is wrong or does not exist
+            :raises: :class: errors.InvalidPasswordError: if the password is too weak (less than 8 symbols)
 
     """
     try:
@@ -93,7 +93,7 @@ def authenticate(email: str, password: str) -> dict:
 async def replenish(uid: str, token: str, amount: int, description: str) -> dict:
     """
             Send kin from current server wallet to wallet linked with the given uid
-            Also push the data about transaction and wallet balances to the db
+            Save transaction data to db
 
             :param uid: uid of the account
             :param token: active firebase token
@@ -121,6 +121,7 @@ async def replenish(uid: str, token: str, amount: int, description: str) -> dict
         raise errors.ItemNotFoundError()
     except:
         raise
+
     try:
         async with kin_service.get_client() as client:
             account = client.kin_account(server_wallet_keypair.secret_seed, app_id=app_id)
@@ -148,6 +149,22 @@ async def replenish(uid: str, token: str, amount: int, description: str) -> dict
 
 
 async def pay(uid: str, token: str, amount: int, description: str):
+    """
+                Send kin from wallet linked with the given uid to server wallet
+                Save transaction data to db
+
+                :param uid: uid of the account
+                :param token: active firebase token
+                :param amount: amount of kin to be sent
+                :param description: additional transaction text
+
+
+                :raises: :class: errors.ItemNotFoundError if account with the given uid does not exist
+                :raises: :class: errors.LowBalanceError if there is no enough money on server wallet
+                :raises: :class: errors.ExcessLimitError if at least one of account limits exceeded
+
+                :return dictionary with transaction data
+        """
     try:
         _check_token(uid, token)
         user_query = db.child("users").child().order_by_child("uid").equal_to(uid).get()
@@ -181,6 +198,17 @@ async def pay(uid: str, token: str, amount: int, description: str):
 
 
 def get_balance(uid: str, token: str) -> float:
+    """
+                Returns current wallet banace
+
+                :param uid: uid of the account
+                :param token: active firebase token
+
+                :return: wallet balance
+
+                :raises: IndexError: if user with given uid does not exist
+                :raises: errors.InvalidTokenError: if given token is invalid
+        """
     try:
         _check_token(uid, token)
 
@@ -245,7 +273,6 @@ async def _create_server_wallet(seed) -> None:
             Create kin wallet that will be used like main server wallet
             Replace old server wallet with itself
 
-
     """
 
     async with kin_service.get_client() as client:
@@ -260,32 +287,6 @@ async def _create_server_wallet(seed) -> None:
 
     db.child('server_wallet').remove()
     db.child('server_wallet').push(data)
-
-
-'''
-def get_account_keypair(uid: str) -> dict:
-    """
-            Returns public wallet address and secret seed of the account with the given uid
-
-            :param uid: uid of the account
-            :param token: active firebase token
-
-            :return: Dictionary with keypair data (public address, seed)
-
-            :raises: :class: errors.AccountNotFoundError if account with the given uid does not exist
-
-    """
-    query = db.child("users").child().order_by_child("uid").equal_to(uid).get()
-    try:
-        user_data = query.each()[0].val()
-    except (IndexError, errors.InvalidTokenError):
-        raise
-    data = {
-        'public_address': user_data['email'],
-        'seed': user_data['email'],
-    }
-    return data
-'''
 
 
 def get_server_wallet() -> dict:
@@ -382,7 +383,6 @@ def reset_limits(period: str) -> None:
             Reset limits for the given period for all users
 
             :param period: One of the following ['day', 'week', 'month']
-
 
      """
     raw_data = db.child('users').child().get().each()
@@ -520,9 +520,3 @@ def _validate_password(password: str) -> bool:
         return True
     else:
         raise errors.InvalidPasswordError()
-
-
-async def main():
-    pass
-# for tests
-#asyncio.run(main())

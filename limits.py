@@ -27,5 +27,4 @@ scheduler.add_job(func=reset_week_limits, trigger="interval", seconds=week_in_se
 scheduler.add_job(func=reset_month_limits, trigger="interval", seconds=month_in_sec)
 scheduler.start()
 
-
 atexit.register(lambda: scheduler.shutdown())
