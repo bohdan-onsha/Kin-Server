@@ -1,5 +1,10 @@
+# Based on [Kin Blockchain](https://www.kin.org/)
+## Developed on Python Kin SDK: [Docs](https://docs.kin.org/python/sdk), [GitHub](https://github.com/kinecosystem/kin-sdk-python)
+
+
+
 ## Local installation
-0. `Make sure you have python 3.7 and pip installed`
+Make sure you have python 3.7+ and pip installed.
 1. `git clone https://github.com/OnshaBogdan/Kin-Server.git`
 2. `cd Kin-Server/`
 3. `virtualenv -p python3 .venv`
@@ -9,14 +14,14 @@
 ```
   config = {
       "apiKey": "",
-      "authDomain""": "",
+      "authDomain": "",
       "databaseURL": "",
       "projectId": "",
       "storageBucket": "",
       "messagingSenderId": ""
   }
 ```
-7. Change your firebase rules as in the example below
+7. Change your firebase rules as in the example below:
 ```
 {
   "rules": {
@@ -31,7 +36,7 @@
     }
 }
 ```
-8. Change `app.secret_key` in `application.py`
+8. Set up `app.secret_key` in `application.py`.
 
 ## Deployment (Ubuntu 16.04)
 #### Install python3.7, pip and virtualenv
@@ -67,21 +72,21 @@
 ├── limits.py               # Script that refreshes user limits periodically
 ├── create-admin.py         # Creates user with admin panel access
 ├── wsgi.py                 # Gunicorn/Uvicorn entry point
-└── requirements.txt.md     # Project dependencies
+└── requirements.txt        # Project dependencies
 ```
 
 ## API
 
 ### 1. Sign up user:  `/api/v1/user/register`
 
-#### Input: 
+#### Request: 
 ```
  body{
- "email":"YourMail@gmail.com",
- "password": "yourpassword228"
+     "email":"YourMail@gmail.com",
+     "password": "yourpassword228"
  }
  ```
- #### Output:
+ #### Response:
  ```
 {
     "balance": 0,
@@ -101,14 +106,14 @@
 
 ### 2. Sign in user:  `/api/v1/user/auth`
 
-#### Input: 
+#### Request: 
 ```
  body{
- "email":"YourMail@gmail.com",
- "password": "yourpassword228"
+     "email":"YourMail@gmail.com",
+     "password": "yourpassword228"
  }
  ```
- #### Output:
+ #### Response:
  ```
 {
     "is_admin": false,
@@ -118,7 +123,7 @@
 
 ### 3. Send kins to user: `/api/v1/user/earn`
 
-#### Input: 
+#### Request: 
 ```
 headers{
     "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
@@ -129,7 +134,7 @@ body{
    "description" : "example-descr"
 }
  ```
- #### Output:
+ #### Response:
  ```
 {
     "amount": 10,
@@ -142,21 +147,20 @@ body{
 }
 ```
 
-
 ### 4. Send kins to server: `/api/v1/user/pay`
 
-#### Input: 
+#### Request: 
 ```
 headers{
     "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
 }
 body{
-   "token":"eyJhbGciOiJSUzI1NiIsImtpZCII7RQx2UrCZ9RuKvRJraFVg...",
-   "amount":100,
-   "description" : "example-descr"
+    "token":"eyJhbGciOiJSUzI1NiIsImtpZCII7RQx2UrCZ9RuKvRJraFVg...",
+    "amount":100,
+    "description" : "example-descr"
 }
  ```
- #### Output:
+ #### Response:
  ```
 {
     "amount": 10,
@@ -170,7 +174,7 @@ body{
 ```
 ### 5. Get user balance: `/api/v1/user/balance`
 
-#### Input: 
+#### Request: 
 ```
 headers{
     "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
@@ -179,16 +183,16 @@ body{
     "token":"703392294f934aa0b9ce823a70a2e800"
 }
  ```
-#### Output:
+#### Response:
  ```
-[
-    69.997
-]
+{
+    "balance":69.997
+}
 ```
 
 ### 6. Get current server wallet public address: `/api/v1/server-wallet`
 
-#### Input: 
+#### Request: 
 ```
 headers{
     "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
@@ -197,27 +201,29 @@ body{
     "token":"703392294f934aa0b9ce823a70a2e800"
 }
  ```
-#### Output:
+#### Response:
  ```
-[
-    "GCW25THTQ6YP32QV6JVMRKX2SYWLBM345WKN2PBTCTTDZET2HMSPMIAY"
-]
+{
+    "public_address":"GCW25THTQ6YP32QV6JVMRKX2SYWLBM345WKN2PBTCTTDZET2HMSPMIAY"
+}
 ```
 
 ### 7. Get user transaction history: `/api/v1/user/history`
 
-#### Input: 
+#### Request: 
 ```
 headers{
     "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
 }
 {
- "token":"703392294f934aa0b9ce823a70a2e800"
+    "token":"703392294f934aa0b9ce823a70a2e800"
 }
  ```
-#### Output:
+#### Response:
  ```
-[
+{
+
+"transactions": [
     {
         "amount": 100,
         "id": "85206471492e4b02cf0c3bbccc93a439d42a155256029a083bea6faf1b273567",
@@ -225,29 +231,30 @@ headers{
         "recipient_address": "GBW4NQFQH6IOOPKY5ZXKS2U4D5FDW6PIXCFJQIXM2GXP2OR4COBQGHIR",
         "sender_address": "GCW25THTQ6YP32QV6JVMRKX2SYWLBM345WKN2PBTCTTDZET2HMSPMIAY",
         "uid": "Oy46pOMn6lfJrMJnBMForPaDDyT2"
+    },
+    {
+    ...
     }
-]
-```
-
+  ]
+}
+ ```
 ### 8. Logout user: `/api/v1/user/logout`
 
-#### Input: 
+#### Request: 
 ```
 headers{
     "uid" : "ml3UADqweOXYznUaQPGLPmDklOz1"
 }
  ```
-#### Output:
- ```
-{
-true
-}
+#### Response:
 ```
+Status Code: 200
+```
+ 
 
 ## Admin panel
 
-#### 1. Create admin user
-In project folder
+####  Create admin user
+In project root folder:
 `python create_admin.py YourMail@gmail.com  YourPassword228`
 
-#### 2. Open `/admin`
